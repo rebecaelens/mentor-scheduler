@@ -84,6 +84,14 @@ export async function getSlots() {
   }
 }
 
+export function getMentor(mentorId) {
+  return MENTORS.find(m => m.id === mentorId);
+}
+
+export function getAllMentors() {
+  return MENTORS;
+}
+
 export async function reserveSlot(slotId, user) {
   const bookings = await getBookings();
 
@@ -95,15 +103,24 @@ export async function reserveSlot(slotId, user) {
     throw new Error("Este horário já foi reservado.");
   }
 
-  // Seleciona um mentor aleatório (na prática, o usuário escolheria)
   const randomMentor = MENTORS[Math.floor(Math.random() * MENTORS.length)];
 
-  await addDoc(colexport function getMentor(mentorId) {
-  return MENTORS.find(m => m.id === mentorId);
-}
+  await addDoc(collection(db, "bookings"), {
+    slotId,
+    userId: user.id,
+    userName: user.name,
+    mentorId: randomMentor.id,
+    mentorName: randomMentor.name,
+    mentorSpecialty: randomMentor.specialty,
+    status: BOOKING_STATUS.CONFIRMED,
+    createdAt: serverTimestamp(),
+    scheduledAt: null,
+    completedAt: null
+  });
 
-export function getAllMentors() {
-  return MENTORS;
+  window.dispatchEvent(
+    new Event("ms:bookings-changed")
+  );
 }
 
 export async function updateBookingStatus(bookingId, newStatus) {
@@ -119,24 +136,6 @@ export async function updateBookingStatus(bookingId, newStatus) {
   }
 
   await updateDoc(bookingRef, updateData);
-
-  window.dispatchEvent(
-    new Event("ms:bookings-changed")
-  );
-}
-
-lection(db, "bookings"), {
-    slotId,
-    userId: user.id,
-    userName: user.name,
-    mentorId: randomMentor.id,
-    mentorName: randomMentor.name,
-    mentorSpecialty: randomMentor.specialty,
-    status: BOOKING_STATUS.CONFIRMED,
-    createdAt: serverTimestamp(),
-    scheduledAt: null,
-    completedAt: null
-  });
 
   window.dispatchEvent(
     new Event("ms:bookings-changed")

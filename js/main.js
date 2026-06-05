@@ -100,7 +100,7 @@ function renderMentors() {
             <div style="display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; margin-bottom: 10px;">
                 ${mentor.technologies.slice(0, 3).map(tech => `<span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 0.7em;">${escapeHtml(tech)}</span>`).join('')}
             </div>
-            <a href="${escapeHtml(mentor.linkedin)}" target="_blank" style="color: #0077B5; font-size: 0.85em; text-decoration: none;">LinkedIn →</a>
+            <a href="${escapeHtml(mentor.linkedin)}" target="_blank" style="color: #0077B5; font-size: 0.85em; text-decoration: none;">LinkedIn -></a>
         </article>
     `).join("");
 }

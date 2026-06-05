@@ -219,10 +219,8 @@ async function renderApp() {
 
         if (buttonSlot) {
             mountGoogleButton(buttonSlot, renderApp);
-            await renderApp();
         }
     }
-}
 
 document.addEventListener("click", async (event) => {   
     const target = event.target;
@@ -288,3 +286,4 @@ window.addEventListener("ms:auth-changed", () => renderApp());
 window.addEventListener("ms:bookings-changed", () => renderApp());
 
 renderApp();
+}

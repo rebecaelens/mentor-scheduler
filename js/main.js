@@ -53,10 +53,10 @@ function createLoginModal() {
 
     const buttonSlot = document.getElementById("modalGoogleButton");
     if (buttonSlot) {
-        mountGoogleButton(buttonSlot, () => {
-        closeLoginModal();
-        await renderApp();
-    });
+        mountGoogleButton(buttonSlot, async () => {
+            closeLoginModal();
+            await renderApp();
+        });
     }
 
     modal.addEventListener("click", (event) => {

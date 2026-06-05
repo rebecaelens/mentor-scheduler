@@ -1,12 +1,11 @@
 import { getCurrentUser, mountGoogleButton, signOut } from "./auth.js";
-import { cancelReservation, getBookingStats, getBookings, getSlots, reserveSlot, updateBookingStatus, getMentor, getAllMentors } from "./scheduler.js";
+import { cancelReservation, getBookingStats, getBookings, getSlots, reserveSlot, updateBookingStatus } from "./scheduler.js";
 import { BOOKING_STATUS, BOOKING_STATUS_LABELS, BOOKING_STATUS_COLORS } from "./data.js";
 
 const elements = {
     userInfo: document.getElementById("userInfo"),
     dashboardStats: document.getElementById("dashboardStats"),
     schedulerGrid: document.getElementById("schedulerGrid"),
-    mentorsList: document.getElementById("mentorsList"),
     bookingsList: document.getElementById("bookingsList")
 };
 
@@ -87,22 +86,6 @@ function handleEscapeKey(event) {
     if (event.key === "Escape") {
         closeLoginModal();
     }
-}
-
-function renderMentors() {
-    const mentors = getAllMentors();
-    
-    elements.mentorsList.innerHTML = mentors.map((mentor) => `
-        <article style="background: #f5f5f5; border-radius: 8px; overflow: hidden; padding: 15px; text-align: center;">
-            <img src="${escapeHtml(mentor.image)}" alt="${escapeHtml(mentor.name)}" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 10px; object-fit: cover;">
-            <h4 style="margin: 10px 0 5px 0; font-size: 1em;">${escapeHtml(mentor.name)}</h4>
-            <p style="margin: 0 0 10px 0; color: #666; font-size: 0.85em;">${escapeHtml(mentor.specialty)}</p>
-            <div style="display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; margin-bottom: 10px;">
-                ${mentor.technologies.slice(0, 3).map(tech => `<span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 0.7em;">${escapeHtml(tech)}</span>`).join('')}
-            </div>
-            <a href="${escapeHtml(mentor.linkedin)}" target="_blank" style="color: #0077B5; font-size: 0.85em; text-decoration: none;">LinkedIn -></a>
-        </article>
-    `).join("");
 }
 
 function renderAuth(user) {
@@ -217,7 +200,7 @@ async function renderBookings() {
         const bookings = await getBookings();
         console.log("[Mentor Scheduler] Renderizando bookings, total:", bookings.length);
 
-        if (bookings.length === 0) {
+        if (!bookings || bookings.length === 0) {
             elements.bookingsList.innerHTML = `
                 <div class="empty-state">
                     <strong>Nenhuma reserva ainda.</strong>
@@ -264,9 +247,6 @@ async function renderApp() {
 
         renderAuth(user);
         console.log("[Mentor Scheduler] Autenticação renderizada");
-        
-        renderMentors();
-        console.log("[Mentor Scheduler] Mentores renderizados");
         
         renderDashboard(stats);
         console.log("[Mentor Scheduler] Dashboard renderizado");

@@ -269,29 +269,6 @@ async function renderApp() {
     }
 }
 
-function filterScheduleBySearch(query) {
-    if (!query || query.trim() === "") {
-        return; // Se vazio, mostra tudo novamente
-    }
-
-    const cards = elements.schedulerGrid.querySelectorAll(".schedule-card");
-    const lowerQuery = query.toLowerCase();
-
-    cards.forEach(card => {
-        const text = card.textContent.toLowerCase();
-        const matches = text.includes(lowerQuery);
-        card.style.display = matches ? "block" : "none";
-    });
-}
-
-// Busca de horários
-const searchInput = document.getElementById("scheduleSearch");
-if (searchInput) {
-    searchInput.addEventListener("input", (e) => {
-        filterScheduleBySearch(e.target.value);
-    });
-}
-
 document.addEventListener("click", async (event) => {   
     const target = event.target;
 

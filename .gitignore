@@ -26,6 +26,8 @@ node_modules/
 # Arquivos de credenciais ou config privada
 js/firebase.js
 js/auth.js
+js/data.js
+
 
 # Arquivos gerados pelo Live Server
 *.tmp

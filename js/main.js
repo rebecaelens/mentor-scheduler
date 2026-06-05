@@ -54,9 +54,9 @@ function createLoginModal() {
     const buttonSlot = document.getElementById("modalGoogleButton");
     if (buttonSlot) {
         mountGoogleButton(buttonSlot, () => {
-            closeLoginModal();
-            renderApp();
-        });
+        closeLoginModal();
+        await renderApp();
+    });
     }
 
     modal.addEventListener("click", (event) => {
@@ -140,8 +140,8 @@ function renderDashboard(stats) {
     `;
 }
 
-function renderSchedule(user) {
-    const slots = getSlots();
+async function renderSchedule(user) {
+    const slots = await getSlots();
 
     elements.schedulerGrid.innerHTML = slots.map((slot) => {
         const isBooked = Boolean(slot.booking);
@@ -180,8 +180,8 @@ function renderSchedule(user) {
     }).join("");
 }
 
-function renderBookings() {
-    const bookings = getBookings();
+async function renderBookings() {
+   const bookings = await getBookings();
 
     if (bookings.length === 0) {
         elements.bookingsList.innerHTML = `
@@ -205,25 +205,26 @@ function renderBookings() {
     `).join("");
 }
 
-function renderApp() {
+async function renderApp() {
     const user = getCurrentUser();
-    const stats = getBookingStats();
+    const stats = await getBookingStats();
 
     renderAuth(user);
     renderDashboard(stats);
-    renderSchedule(user);
-    renderBookings();
+    await renderSchedule(user);
+    await renderBookings();
 
     if (!user) {
         const buttonSlot = document.getElementById("googleSignInButton");
 
         if (buttonSlot) {
             mountGoogleButton(buttonSlot, renderApp);
+            await renderApp();
         }
     }
 }
 
-document.addEventListener("click", (event) => {
+document.addEventListener("click", async (event) => {   
     const target = event.target;
 
     if (!(target instanceof HTMLElement)) {
@@ -255,7 +256,11 @@ document.addEventListener("click", (event) => {
         }
 
         try {
-            reserveSlot(reserveButton.dataset.reserveSlot, user);
+            await reserveSlot(
+            reserveButton.dataset.reserveSlot,
+            user
+        );
+        await renderApp();
         } catch (error) {
             window.alert(error instanceof Error ? error.message : "Não foi possível reservar este horário.");
         }
@@ -267,14 +272,19 @@ document.addEventListener("click", (event) => {
         const user = getCurrentUser();
 
         try {
-            cancelReservation(cancelButton.dataset.cancelSlot, user);
+            await cancelReservation(
+            cancelButton.dataset.cancelSlot,
+            user
+        );
+
+        await renderApp();
         } catch (error) {
             window.alert(error instanceof Error ? error.message : "Não foi possível cancelar esta reserva.");
         }
     }
 });
 
-window.addEventListener("ms:auth-changed", renderApp);
-window.addEventListener("ms:bookings-changed", renderApp);
+window.addEventListener("ms:auth-changed", () => renderApp());
+window.addEventListener("ms:bookings-changed", () => renderApp());
 
 renderApp();

@@ -141,9 +141,16 @@ function renderDashboard(stats) {
 }
 
 async function renderSchedule(user) {
-    const slots = await getSlots();
+    try {
+        const slots = await getSlots();
+        
+        if (!slots || slots.length === 0) {
+            console.warn("[Mentor Scheduler] AVISO: Nenhum slot disponível!");
+            elements.schedulerGrid.innerHTML = '<div class="empty-state"><strong>Nenhum horário disponível</strong><p>Verifique a configuração do Firebase</p></div>';
+            return;
+        }
 
-    elements.schedulerGrid.innerHTML = slots.map((slot) => {
+        elements.schedulerGrid.innerHTML = slots.map((slot) => {
         const isBooked = Boolean(slot.booking);
         const isMine = user && slot.booking && slot.booking.userId === user.id;
         const actionLabel = isMine ? "Cancelar" : isBooked ? "Reservado" : "Reservar";
@@ -177,50 +184,78 @@ async function renderSchedule(user) {
                 </div>
             </article>
         `;
-    }).join("");
-}
+    }).join("");    } catch (error) {
+        console.error("[Mentor Scheduler] ERRO ao renderizar schedule:", error);
+        elements.schedulerGrid.innerHTML = '<div class="empty-state"><strong>Erro ao carregar horários</strong><p>Verifique o console para mais detalhes</p></div>';
+    }}
 
 async function renderBookings() {
-   const bookings = await getBookings();
+    try {
+        const bookings = await getBookings();
+        console.log("[Mentor Scheduler] Renderizando bookings, total:", bookings.length);
 
-    if (bookings.length === 0) {
-        elements.bookingsList.innerHTML = `
-            <div class="empty-state">
-                <strong>Nenhuma reserva ainda.</strong>
-                <p>Faça login, escolha um horário e a agenda aparecerá aqui.</p>
-            </div>
-        `;
-        return;
+        if (bookings.length === 0) {
+            elements.bookingsList.innerHTML = `
+                <div class="empty-state">
+                    <strong>Nenhuma reserva ainda.</strong>
+                    <p>Faça login, escolha um horário e a agenda aparecerá aqui.</p>
+                </div>
+            `;
+            return;
+        }
+
+        elements.bookingsList.innerHTML = bookings.map((booking) => {
+            console.log("[Mentor Scheduler] Booking processado:", booking);
+            return `
+                <article class="booking-item">
+                    <div>
+                        <p>${escapeHtml(booking.day)}, ${escapeHtml(booking.time)}</p>
+                        <h4>${escapeHtml(booking.title)}</h4>
+                        <span>${escapeHtml(booking.duration)} · ${escapeHtml(booking.userName)}</span>
+                    </div>
+                    <small>Reservado em ${escapeHtml(formatDateTime(booking.createdAt))}</small>
+                </article>
+            `;
+        }).join("");
+    } catch (error) {
+        console.error("[Mentor Scheduler] ERRO ao renderizar bookings:", error);
+        elements.bookingsList.innerHTML = '<div class="empty-state"><strong>Erro ao carregar reservas</strong><p>Verifique o console</p></div>';
     }
-
-    elements.bookingsList.innerHTML = bookings.map((booking) => `
-        <article class="booking-item">
-            <div>
-                <p>${escapeHtml(booking.day)}, ${escapeHtml(booking.time)}</p>
-                <h4>${escapeHtml(booking.title)}</h4>
-                <span>${escapeHtml(booking.duration)} · ${escapeHtml(booking.userName)}</span>
-            </div>
-            <small>Reservado em ${escapeHtml(formatDateTime(booking.createdAt))}</small>
-        </article>
-    `).join("");
 }
 
 async function renderApp() {
-    const user = getCurrentUser();
-    const stats = await getBookingStats();
+    try {
+        console.log("[Mentor Scheduler] renderApp iniciando...");
+        
+        const user = getCurrentUser();
+        console.log("[Mentor Scheduler] Usuário atual:", user?.name || "não autenticado");
+        
+        const stats = await getBookingStats();
+        console.log("[Mentor Scheduler] Estatísticas carregadas:", stats);
 
-    renderAuth(user);
-    renderDashboard(stats);
-    await renderSchedule(user);
-    await renderBookings();
+        renderAuth(user);
+        console.log("[Mentor Scheduler] Autenticação renderizada");
+        
+        renderDashboard(stats);
+        console.log("[Mentor Scheduler] Dashboard renderizado");
+        
+        await renderSchedule(user);
+        console.log("[Mentor Scheduler] Horários renderizados, quantidade:", elements.schedulerGrid?.children?.length || 0);
+        
+        await renderBookings();
+        console.log("[Mentor Scheduler] Reservas renderizadas");
 
-    if (!user) {
-        const buttonSlot = document.getElementById("googleSignInButton");
+        if (!user) {
+            const buttonSlot = document.getElementById("googleSignInButton");
 
-        if (buttonSlot) {
-            mountGoogleButton(buttonSlot, renderApp);
+            if (buttonSlot) {
+                mountGoogleButton(buttonSlot, renderApp);
+            }
         }
+    } catch (error) {
+        console.error("[Mentor Scheduler] ERRO em renderApp:", error);
     }
+}
 
 document.addEventListener("click", async (event) => {   
     const target = event.target;
@@ -255,10 +290,10 @@ document.addEventListener("click", async (event) => {
 
         try {
             await reserveSlot(
-            reserveButton.dataset.reserveSlot,
-            user
-        );
-        await renderApp();
+                reserveButton.dataset.reserveSlot,
+                user
+            );
+            await renderApp();
         } catch (error) {
             window.alert(error instanceof Error ? error.message : "Não foi possível reservar este horário.");
         }
@@ -271,11 +306,11 @@ document.addEventListener("click", async (event) => {
 
         try {
             await cancelReservation(
-            cancelButton.dataset.cancelSlot,
-            user
-        );
+                cancelButton.dataset.cancelSlot,
+                user
+            );
 
-        await renderApp();
+            await renderApp();
         } catch (error) {
             window.alert(error instanceof Error ? error.message : "Não foi possível cancelar esta reserva.");
         }
@@ -285,5 +320,5 @@ document.addEventListener("click", async (event) => {
 window.addEventListener("ms:auth-changed", () => renderApp());
 window.addEventListener("ms:bookings-changed", () => renderApp());
 
+console.log("[Mentor Scheduler] Inicializando aplicação...");
 renderApp();
-}

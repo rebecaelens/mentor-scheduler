@@ -1,4 +1,13 @@
-const STORAGE_KEY = "mentor_scheduler_bookings";
+import { db } from "./firebase.js";
+
+import {
+  collection,
+  getDocs,
+  addDoc,
+  deleteDoc,
+  doc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 const DAYS = [
   "Segunda-feira",
@@ -30,72 +39,106 @@ function createSlots() {
   return slots;
 }
 
-function getStoredBookings() {
-  return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-}
-
-function saveBookings(bookings) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
-  window.dispatchEvent(new Event("ms:bookings-changed"));
+export async function getBookings() {
+  try {
+    console.log("[Mentor Scheduler] Buscando bookings do Firebase...");
+    const snapshot = await getDocs(collection(db, "bookings"));
+    const bookings = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    console.log("[Mentor Scheduler] Bookings obtidos:", bookings.length);
+    return bookings;
+  } catch (error) {
+    console.error("[Mentor Scheduler] ERRO ao buscar bookings do Firebase:", error);
+    console.error("[Mentor Scheduler] Verifique a configuração do Firebase e as permissões do Firestore");
+    throw error;
+  }
 }
 
 export async function getSlots() {
-  const slots = createSlots();
-  const bookings = getStoredBookings();
+  try {
+    const slots = createSlots();
+    console.log("[Mentor Scheduler] Slots criados, total:", slots.length);
+    
+    const bookings = await getBookings();
+    console.log("[Mentor Scheduler] Bookings carregados do Firebase, total:", bookings.length);
 
-  return slots.map(slot => ({
-    ...slot,
-    booking: bookings.find(b => b.slotId === slot.id) || null
-  }));
-}
-
-export async function getBookings() {
-  return getStoredBookings();
+    const enrichedSlots = slots.map(slot => ({
+      ...slot,
+      booking:
+        bookings.find(
+          booking => booking.slotId === slot.id
+        ) || null
+    }));
+    
+    console.log("[Mentor Scheduler] Slots enriquecidos com bookings:", enrichedSlots.length);
+    return enrichedSlots;
+  } catch (error) {
+    console.error("[Mentor Scheduler] ERRO em getSlots:", error);
+    throw error;
+  }
 }
 
 export async function reserveSlot(slotId, user) {
-  const bookings = getStoredBookings();
+  const bookings = await getBookings();
 
-  const existing = bookings.find(b => b.slotId === slotId);
+  const existing = bookings.find(
+    booking => booking.slotId === slotId
+  );
 
   if (existing) {
     throw new Error("Este horário já foi reservado.");
   }
 
-  const slot = createSlots().find(s => s.id === slotId);
-
-  bookings.push({
+  await addDoc(collection(db, "bookings"), {
     slotId,
     userId: user.id,
     userName: user.name,
-    day: slot.day,
-    time: slot.time,
-    title: slot.title,
-    duration: slot.duration,
-    createdAt: new Date().toISOString()
+    createdAt: serverTimestamp()
   });
 
-  saveBookings(bookings);
+  window.dispatchEvent(
+    new Event("ms:bookings-changed")
+  );
 }
 
 export async function cancelReservation(slotId, user) {
-  const bookings = getStoredBookings();
+  const bookings = await getBookings();
 
-  const filtered = bookings.filter(
+  const booking = bookings.find(
     booking =>
-      !(booking.slotId === slotId && booking.userId === user?.id)
+      booking.slotId === slotId &&
+      booking.userId === user.id
   );
 
-  saveBookings(filtered);
+  if (!booking) {
+    return;
+  }
+
+  await deleteDoc(
+    doc(db, "bookings", booking.id)
+  );
+
+  window.dispatchEvent(
+    new Event("ms:bookings-changed")
+  );
 }
 
 export async function getBookingStats() {
   const slots = await getSlots();
 
-  const total = slots.filter(slot => slot.booking).length;
-  const available = slots.filter(slot => !slot.booking).length;
+  const total = slots.filter(
+    slot => slot.booking
+  ).length;
 
-  const nextBooking = slots.find(slot => slot.booking);
+  const available = slots.filter(
+    slot => !slot.booking
+  ).length;
+
+  const nextBooking = slots.find(
+    slot => slot.booking
+  );
 
   return {
     total,

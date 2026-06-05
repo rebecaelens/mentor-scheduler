@@ -134,11 +134,6 @@ function renderDashboard(stats) {
             <span>${stats.byStatus.confirmed} confirmadas • ${stats.byStatus.completed} concluídas</span>
         </article>
         <article class="stat-card">
-            <p>Mentores ativos</p>
-            <h3>${stats.activeMentors}</h3>
-            <span>Profissionais disponíveis</span>
-        </article>
-        <article class="stat-card">
             <p>Vagas disponíveis</p>
             <h3>${stats.available}</h3>
             <span>Horários livres para reservar</span>

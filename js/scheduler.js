@@ -183,13 +183,10 @@ export async function getBookingStats() {
     .filter(b => b.status === BOOKING_STATUS.CONFIRMED)
     .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))[0];
 
-  const activeMentors = new Set(bookings.map(b => b.mentorId)).size;
-
   return {
     total,
     available,
     byStatus,
-    activeMentors,
     nextBooking: nextBooking
       ? {
           day: slots.find(s => s.id === nextBooking.slotId)?.day || "N/A",

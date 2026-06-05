@@ -1,0 +1,34 @@
+# Sistema
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build
+dist/
+build/
+
+# Dependências locais
+node_modules/
+
+# Ambiente local / variáveis sensíveis
+.env
+.env.local
+.env.*.local
+
+# Arquivos de credenciais ou config privada
+js/firebase.js
+js/auth.js
+
+# Arquivos gerados pelo Live Server
+*.tmp
+
+# Outros
+*.swp

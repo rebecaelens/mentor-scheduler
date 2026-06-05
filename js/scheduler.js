@@ -1,4 +1,5 @@
 import { db } from "./firebase.js";
+import { MENTORS, BOOKING_STATUS, BOOKING_STATUS_LABELS } from "./data.js";
 
 import {
   collection,
@@ -6,7 +7,10 @@ import {
   addDoc,
   deleteDoc,
   doc,
-  serverTimestamp
+  serverTimestamp,
+  updateDoc,
+  query,
+  where
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 const DAYS = [
@@ -84,18 +88,54 @@ export async function reserveSlot(slotId, user) {
   const bookings = await getBookings();
 
   const existing = bookings.find(
-    booking => booking.slotId === slotId
+    booking => booking.slotId === slotId && booking.status !== BOOKING_STATUS.CANCELLED
   );
 
   if (existing) {
     throw new Error("Este horário já foi reservado.");
   }
 
-  await addDoc(collection(db, "bookings"), {
+  // Seleciona um mentor aleatório (na prática, o usuário escolheria)
+  const randomMentor = MENTORS[Math.floor(Math.random() * MENTORS.length)];
+
+  await addDoc(colexport function getMentor(mentorId) {
+  return MENTORS.find(m => m.id === mentorId);
+}
+
+export function getAllMentors() {
+  return MENTORS;
+}
+
+export async function updateBookingStatus(bookingId, newStatus) {
+  if (!Object.values(BOOKING_STATUS).includes(newStatus)) {
+    throw new Error("Status inválido.");
+  }
+
+  const bookingRef = doc(db, "bookings", bookingId);
+  const updateData = { status: newStatus };
+
+  if (newStatus === BOOKING_STATUS.COMPLETED) {
+    updateData.completedAt = serverTimestamp();
+  }
+
+  await updateDoc(bookingRef, updateData);
+
+  window.dispatchEvent(
+    new Event("ms:bookings-changed")
+  );
+}
+
+lection(db, "bookings"), {
     slotId,
     userId: user.id,
     userName: user.name,
-    createdAt: serverTimestamp()
+    mentorId: randomMentor.id,
+    mentorName: randomMentor.name,
+    mentorSpecialty: randomMentor.specialty,
+    status: BOOKING_STATUS.CONFIRMED,
+    createdAt: serverTimestamp(),
+    scheduledAt: null,
+    completedAt: null
   });
 
   window.dispatchEvent(
@@ -127,27 +167,37 @@ export async function cancelReservation(slotId, user) {
 
 export async function getBookingStats() {
   const slots = await getSlots();
+  const bookings = await getBookings();
 
-  const total = slots.filter(
-    slot => slot.booking
-  ).length;
+  const total = bookings.length;
+  const available = slots.filter(slot => !slot.booking).length;
+  
+  const byStatus = {
+    confirmed: bookings.filter(b => b.status === BOOKING_STATUS.CONFIRMED).length,
+    completed: bookings.filter(b => b.status === BOOKING_STATUS.COMPLETED).length,
+    cancelled: bookings.filter(b => b.status === BOOKING_STATUS.CANCELLED).length,
+    no_show: bookings.filter(b => b.status === BOOKING_STATUS.NO_SHOW).length,
+    pending: bookings.filter(b => b.status === BOOKING_STATUS.PENDING).length
+  };
 
-  const available = slots.filter(
-    slot => !slot.booking
-  ).length;
+  const nextBooking = bookings
+    .filter(b => b.status === BOOKING_STATUS.CONFIRMED)
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))[0];
 
-  const nextBooking = slots.find(
-    slot => slot.booking
-  );
+  const activeMentors = new Set(bookings.map(b => b.mentorId)).size;
 
   return {
     total,
     available,
+    byStatus,
+    activeMentors,
     nextBooking: nextBooking
       ? {
-          day: nextBooking.day,
-          time: nextBooking.time,
-          userName: nextBooking.booking.userName
+          day: slots.find(s => s.id === nextBooking.slotId)?.day || "N/A",
+          time: slots.find(s => s.id === nextBooking.slotId)?.time || "N/A",
+          userName: nextBooking.userName,
+          mentorName: nextBooking.mentorName,
+          mentorSpecialty: nextBooking.mentorSpecialty
         }
       : null
   };

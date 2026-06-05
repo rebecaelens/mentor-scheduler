@@ -1,10 +1,12 @@
 import { getCurrentUser, mountGoogleButton, signOut } from "./auth.js";
-import { cancelReservation, getBookingStats, getBookings, getSlots, reserveSlot } from "./scheduler.js";
+import { cancelReservation, getBookingStats, getBookings, getSlots, reserveSlot, updateBookingStatus, getMentor, getAllMentors } from "./scheduler.js";
+import { BOOKING_STATUS, BOOKING_STATUS_LABELS, BOOKING_STATUS_COLORS } from "./data.js";
 
 const elements = {
     userInfo: document.getElementById("userInfo"),
     dashboardStats: document.getElementById("dashboardStats"),
     schedulerGrid: document.getElementById("schedulerGrid"),
+    mentorsList: document.getElementById("mentorsList"),
     bookingsList: document.getElementById("bookingsList")
 };
 
@@ -87,6 +89,22 @@ function handleEscapeKey(event) {
     }
 }
 
+function renderMentors() {
+    const mentors = getAllMentors();
+    
+    elements.mentorsList.innerHTML = mentors.map((mentor) => `
+        <article style="background: #f5f5f5; border-radius: 8px; overflow: hidden; padding: 15px; text-align: center;">
+            <img src="${escapeHtml(mentor.image)}" alt="${escapeHtml(mentor.name)}" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 10px; object-fit: cover;">
+            <h4 style="margin: 10px 0 5px 0; font-size: 1em;">${escapeHtml(mentor.name)}</h4>
+            <p style="margin: 0 0 10px 0; color: #666; font-size: 0.85em;">${escapeHtml(mentor.specialty)}</p>
+            <div style="display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; margin-bottom: 10px;">
+                ${mentor.technologies.slice(0, 3).map(tech => `<span style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-size: 0.7em;">${escapeHtml(tech)}</span>`).join('')}
+            </div>
+            <a href="${escapeHtml(mentor.linkedin)}" target="_blank" style="color: #0077B5; font-size: 0.85em; text-decoration: none;">LinkedIn →</a>
+        </article>
+    `).join("");
+}
+
 function renderAuth(user) {
     if (user) {
         const avatarSource = user.picture || "./assets/avatar-default.png";
@@ -118,7 +136,7 @@ function renderDashboard(stats) {
         : "Nenhuma agendada";
 
     const nextOwner = stats.nextBooking
-        ? `Com ${escapeHtml(stats.nextBooking.userName)}`
+        ? `${escapeHtml(stats.nextBooking.mentorName)} • ${escapeHtml(stats.nextBooking.mentorSpecialty)}`
         : "Reserve um horário para começar";
 
     elements.dashboardStats.innerHTML = `
@@ -130,7 +148,12 @@ function renderDashboard(stats) {
         <article class="stat-card">
             <p>Total de agendamentos</p>
             <h3>${stats.total}</h3>
-            <span>Reservas salvas no navegador</span>
+            <span>${stats.byStatus.confirmed} confirmadas • ${stats.byStatus.completed} concluídas</span>
+        </article>
+        <article class="stat-card">
+            <p>Mentores ativos</p>
+            <h3>${stats.activeMentors}</h3>
+            <span>Profissionais disponíveis</span>
         </article>
         <article class="stat-card">
             <p>Vagas disponíveis</p>
@@ -206,14 +229,20 @@ async function renderBookings() {
 
         elements.bookingsList.innerHTML = bookings.map((booking) => {
             console.log("[Mentor Scheduler] Booking processado:", booking);
+            const statusLabel = BOOKING_STATUS_LABELS[booking.status] || booking.status;
+            const statusColor = BOOKING_STATUS_COLORS[booking.status] || "#999";
+            
             return `
                 <article class="booking-item">
-                    <div>
-                        <p>${escapeHtml(booking.day)}, ${escapeHtml(booking.time)}</p>
-                        <h4>${escapeHtml(booking.title)}</h4>
-                        <span>${escapeHtml(booking.duration)} · ${escapeHtml(booking.userName)}</span>
+                    <div style="display: flex; justify-content: space-between; align-items: start; gap: 10px;">
+                        <div>
+                            <p style="margin: 0 0 5px 0;">${escapeHtml(booking.day)}, ${escapeHtml(booking.time)}</p>
+                            <h4 style="margin: 0 0 5px 0;">${escapeHtml(booking.mentorName || "Mentor")}</h4>
+                            <span style="color: #666; font-size: 0.85em;">${escapeHtml(booking.mentorSpecialty || "Especialidade")}</span>
+                        </div>
+                        <span style="background-color: ${statusColor}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; font-weight: 500; white-space: nowrap;">${statusLabel}</span>
                     </div>
-                    <small>Reservado em ${escapeHtml(formatDateTime(booking.createdAt))}</small>
+                    <small style="color: #999; margin-top: 5px; display: block;">Reservado em ${escapeHtml(formatDateTime(booking.createdAt))}</small>
                 </article>
             `;
         }).join("");
@@ -236,6 +265,9 @@ async function renderApp() {
         renderAuth(user);
         console.log("[Mentor Scheduler] Autenticação renderizada");
         
+        renderMentors();
+        console.log("[Mentor Scheduler] Mentores renderizados");
+        
         renderDashboard(stats);
         console.log("[Mentor Scheduler] Dashboard renderizado");
         
@@ -255,6 +287,29 @@ async function renderApp() {
     } catch (error) {
         console.error("[Mentor Scheduler] ERRO em renderApp:", error);
     }
+}
+
+function filterScheduleBySearch(query) {
+    if (!query || query.trim() === "") {
+        return; // Se vazio, mostra tudo novamente
+    }
+
+    const cards = elements.schedulerGrid.querySelectorAll(".schedule-card");
+    const lowerQuery = query.toLowerCase();
+
+    cards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        const matches = text.includes(lowerQuery);
+        card.style.display = matches ? "block" : "none";
+    });
+}
+
+// Busca de horários
+const searchInput = document.getElementById("scheduleSearch");
+if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+        filterScheduleBySearch(e.target.value);
+    });
 }
 
 document.addEventListener("click", async (event) => {   

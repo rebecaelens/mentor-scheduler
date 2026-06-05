@@ -1,0 +1,91 @@
+@media (max-width: 992px) {
+    .topbar,
+    .hero,
+    .booking-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .auth-zone {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .auth-form {
+        width: 100%;
+    }
+
+    .auth-input {
+        width: 100%;
+        min-width: 0;
+        flex: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .page-shell {
+        width: min(100% - 20px, 1180px);
+        padding-top: 12px;
+    }
+
+    .topbar,
+    .hero,
+    .panel,
+    .stat-card {
+        padding: 18px;
+    }
+
+    .topbar {
+        border-radius: 20px;
+    }
+
+    .hero h2 {
+        max-width: none;
+    }
+
+    .panel-head,
+    .schedule-card-head,
+    .schedule-card-footer,
+    .booking-item {
+        align-items: flex-start;
+    }
+
+    .schedule-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .brand-mark {
+        gap: 12px;
+    }
+
+    .brand-logo {
+        width: 46px;
+        height: 46px;
+        padding: 8px;
+    }
+
+    .hero {
+        gap: 16px;
+    }
+
+    .hero-chip {
+        width: 100%;
+    }
+
+    .auth-form,
+    .schedule-card-footer {
+        width: 100%;
+    }
+
+    .btn-brand,
+    .btn-soft,
+    .btn-disabled {
+        width: 100%;
+    }
+}

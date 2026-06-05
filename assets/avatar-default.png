@@ -1,0 +1,6 @@
+<!-- Placeholder SVG avatar saved with .png extension for demo purposes -->
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="20" fill="#e6eefc" />
+  <circle cx="64" cy="44" r="26" fill="#d7e6ff" />
+  <rect x="24" y="86" width="80" height="18" rx="9" fill="#d7e6ff" />
+</svg>
